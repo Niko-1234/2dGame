@@ -1,0 +1,17 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+
+canvas {
+    width: 1280px;
+    height: 720px;
+    margin: 100px auto;
+    background-color: gainsboro;
+    display: block;
+
+}
+
+div {
+    box-sizing: border-box;
+}
