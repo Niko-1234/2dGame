@@ -33,4 +33,8 @@ class Controller {
                 return "None"
         }
     }
+
+    LMB(){
+        return "Attack"
+    }
 }

@@ -60,12 +60,20 @@ class Pawn extends Actor {
     }
     this.JumpAnim.FallRight.src  = "img/_FallRight.png"
     this.JumpAnim.FallLeft.src   = "img/_FallLeft.png"
+    this.JumpAnim.FallRight.src  = "img/_FallRight.png"
+    this.JumpAnim.FallLeft.src   = "img/_FallLeft.png"
     this.Attack1Anim = {
         Left:  new Image(),
         Right:  new Image()
     }
-    this.JumpAnim.FallRight.src  = "img/_FallRight.png"
-    this.JumpAnim.FallLeft.src   = "img/_FallLeft.png"
+    this.Attack1Anim.Right.src  = "img/_Attack_Right.png"
+    this.Attack1Anim.Left.src   = "img/_Attack_Left.png"
+    this.Attack2Anim = {
+        Left:  new Image(),
+        Right:  new Image()
+    }
+    this.Attack2Anim.Right.src  = "img/_Attack2_Right.png"
+    this.Attack2Anim.Left.src   = "img/_Attack2_Right.png"
 
     this.ObjWidth = 40
     this.width = 120
@@ -76,6 +84,7 @@ class Pawn extends Actor {
     this.bRightMove = true
     this.GracAcc = 2
     this.bIsFalling = true
+    this.bHCollision = false
     }
 
     Collision(side){
@@ -90,9 +99,11 @@ class Pawn extends Actor {
             case "left":
             case "right":
                 this.dx = 0
+                this.bHCollision = true
                 break;
             case "no":
                 this.bIsFalling = true
+                this.bHCollision = false
             default:
                 break;
         }
@@ -130,8 +141,35 @@ class Pawn extends Actor {
         }
     }
 
+    SetFrame(Frame){
+        switch (Frame) {
+            case "first":
+                this.frameX = 0
+                break;
+            case "last":
+                this.frameX = (this.GetImgFrames(this.CurrImg) - 1)
+                break;
+            default:
+                break;
+        }
+    }
+
+    ResetFrames(){
+        if(this.bRightMove){
+            this.SetFrame("first")
+        } else {
+            this.SetFrame("last")
+        }
+    }
+
     SetCurrentAnimation(){
         var OldImg = this.CurrImg
+        if ((this.CurrImg == this.Attack1Anim.Right || 
+             this.CurrImg == this.Attack1Anim.Left  ||
+             this.CurrImg == this.Attack2Anim.Right || 
+             this.CurrImg == this.Attack2Anim.Left  )){
+            if(this.bRightMove && this.frameX < (this.GetImgFrames(this.CurrImg) - 1) || (!this.bRightMove && this.frameX > 0)) return
+        }
         if (this.dx == 0 && this.dy == 0 && !this.bIsFalling){
             if (this.bRightMove) {
                 this.CurrImg = this.MovAnim.IdleRight
@@ -152,30 +190,47 @@ class Pawn extends Actor {
             }
         }
         if (OldImg != this.CurrImg){
-            this.frameX = 0
+            this.ResetFrames()
         }
     }
 
     OnUpdate() {
         super.OnUpdate()
-        // ctx.drawImage(this.PawnImage, 0 ,0 , this.width, this.height)
         this.x = this.x + (this.dx * this.Speed)
         this.y = this.y + (this.dy * this.GracAcc)
         this.LeftRightMovement()
         this.Gravitation()
         this.SetCurrentAnimation()
+        this.drawSprite(this.CurrImg, this.width * this.frameX, 0, this.width, this.height, (this.x - (this.width)), (this.y - this.height * 2) , this.width * 2, this.height * 2)
         if(this.bRightMove){
             this.frameX++
             if(this.frameX >= this.GetImgFrames(this.CurrImg)){
-                this.frameX = 0
+                this.SetFrame("first")
             }
         } else {
             if(this.frameX <= 0){
-                this.frameX = (this.GetImgFrames(this.CurrImg) - 1)
+                this.SetFrame("last")
             }
             this.frameX--
         }
-        this.drawSprite(this.CurrImg, this.width * this.frameX, 0, this.width, this.height, (this.x - (this.width*2)/2), (this.y - this.height * 2) , this.width * 2, this.height * 2)
+    }
+
+    Attack() {
+        if (this.CurrImg == this.Attack1Anim.Right || this.CurrImg == this.Attack1Anim.Left) {
+            if (this.bRightMove){
+                this.CurrImg = this.Attack2Anim.Right
+            } else {
+                this.CurrImg = this.Attack2Anim.Left;
+            }
+            return
+        } else if (this.CurrImg == this.Attack2Anim.Right || this.CurrImg == this.Attack2Anim.Left) return //TODO Set Next Aniamtion
+
+        if (this.bRightMove){
+            this.CurrImg = this.Attack1Anim.Right
+        } else {
+            this.CurrImg = this.Attack1Anim.Left;
+        }
+        this.ResetFrames()
     }
 }
 
@@ -196,9 +251,17 @@ class PlayerPawn extends Pawn{
         switch (InputEventValue) {
             case 'MoveRightStart':
                 this.HMove.right = 1
+                if (this.bHCollision) {
+                    this.x++
+                    this.bHCollision = false
+                }
                 break
             case 'MoveLeftStart':
                 this.HMove.left = -1
+                if (this.bHCollision) {
+                    this.x--
+                    this.bHCollision = false
+                }
                 break
             case 'MoveRightEnd':
                 this.HMove.right = 0
@@ -214,6 +277,9 @@ class PlayerPawn extends Pawn{
                     this.bIsFalling = true
                 }
                 break
+            case 'Attack':
+                super.Attack()
+                console.log("PLayer Pawn Attack")
             default:
                 break
         }
@@ -243,7 +309,7 @@ class Game {
     }
     
     BeginPlay() {
-        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5 , 'blue', 10))
+        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'blue', 10))
         this.SpawnPawn(this.GameWorld.GetPlayerChar())
         //floor
         this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'red'))

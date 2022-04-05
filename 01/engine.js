@@ -17,14 +17,14 @@ class Engine{
         Pawns.forEach(pawn => {
             var PawnCollisions = 0
             ColisionBoxes.forEach(box => {
-                if ((pawn.x + pawn.ObjWidth/2) >   box.x                && 
-                    (pawn.x - pawn.ObjWidth/2) <  (box.x + box.width)   && 
+                if ((pawn.x + pawn.ObjWidth/2) >=   box.x                && 
+                    (pawn.x - pawn.ObjWidth/2) <=  (box.x + box.width)   && 
                      pawn.y                    >=  box.y                && 
                     (pawn.y - pawn.height)     <  (box.y + box.height)){
                     var TopDiff = Math.abs(pawn.y - box.y)
                     var BottomDiff = Math.abs((pawn.y - pawn.height) - (box.y + box.height))
-                    var LeftDiff = Math.abs(pawn.x - box.x)
-                    var RightDiff = Math.abs(pawn.x - (box.x + box.width))
+                    var LeftDiff = Math.abs((pawn.x + pawn.ObjWidth/2) - box.x)
+                    var RightDiff = Math.abs((pawn.x - pawn.ObjWidth/2) - (box.x + box.width))
                     switch (Math.min(TopDiff,BottomDiff,LeftDiff,RightDiff)){
                         case TopDiff:
                             pawn.y = box.y
@@ -68,7 +68,7 @@ class Engine{
             this.GameLogic.PlayerInput(this.GameController.InputUP(event.key))
         })
         window.addEventListener("click", (event) => {
-
+            this.GameLogic.PlayerInput(this.GameController.LMB())
         })
         this.Then = Date.now()
         this.StartTime = this.Then
@@ -83,9 +83,7 @@ class Engine{
             this.Then = this.Now - (this.Elapsed % this.FPSInterval)
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             this.CheckCollisions(this.GameWorld.GetPawns(), this.GameWorld.GetCollisionBoxes())
-            this.GameWorld.GetActors().forEach(actor => {
-                actor.OnUpdate()
-            })
+            this.GameWorld.OnUpdate()
         }
     }
 }

@@ -1,27 +1,34 @@
 class World {
     constructor() {      
-        this.ators = []
+        this.actors = []
         this.ColisionsBoxes = []
         this.Pawns = []
         this.PlayerChar
     }
 
+    OnUpdate() {
+        this.actors.forEach(actor => {
+            actor.OnUpdate()
+            actor.x -= (this.PlayerChar.dx * this.PlayerChar.Speed) 
+        })
+    }
+
     AddActor(actor) {
-        this.ators.push(actor)
+        this.actors.push(actor)
     }
 
     AddColisionBox(actor) {
-        this.ators.push(actor)
+        this.actors.push(actor)
         this.ColisionsBoxes.push(actor)
     }
 
     AddPawn(actor) {
-        this.ators.push(actor)
+        this.actors.push(actor)
         this.Pawns.push(actor)
     }
 
     GetActors() {
-        return this.ators
+        return this.actors
     }
 
     SetPlayerChar(actor) {
