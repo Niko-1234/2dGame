@@ -168,47 +168,54 @@ class Pawn extends Actor {
     SetCurrentAnimation(){
         var OldImg = this.CurrImg
         if (this.bAttack){
-            //In First Frame Set Attack Animation
-            if ((this.bRightMove && this.frameX == 0) || (!this.bRightMove && (this.frameX == this.GetImgFrames(this.CurrImg) - 1))){
-                if (this.CurrImg == this.Attack1Anim.Right || 
-                    this.CurrImg == this.Attack1Anim.Left) {
-                    if (this.bRightMove) this.CurrImg = this.Attack2Anim.Right
-                    else                 this.CurrImg = this.Attack2Anim.Left
-                } else {
-                    if (this.bRightMove) this.CurrImg = this.Attack1Anim.Right
-                    else                 this.CurrImg = this.Attack1Anim.Left
-                }
-            //In Last Frame clear attack Flags
-            } else if ((!this.bRightMove && this.frameX == 0) || (this.bRightMove && (this.frameX  == this.GetImgFrames(this.CurrImg) - 1))){
-                this.bAttack = false
-                if (this.bNextAttack){
-                    this.bAttack = true
-                }
-                this.bNextAttack = false
-            }
+            this.SetAttackAnimation()
         } else {
-            if (this.dx == 0 && this.dy == 0 && !this.bIsFalling){
-                if (this.bRightMove) {
-                    this.CurrImg = this.MovAnim.IdleRight
-                } else {
-                    this.CurrImg = this.MovAnim.IdleLeft
-                }
-            } else if (this.bIsFalling){
-                if (this.bRightMove) {
-                    this.CurrImg = this.JumpAnim.FallRight
-                } else {
-                    this.CurrImg = this.JumpAnim.FallLeft
-                }
-            } else {
-                if (this.bRightMove) {
-                    this.CurrImg = this.MovAnim.RunRight
-                } else {
-                    this.CurrImg = this.MovAnim.RunLeft
-                }
-            }
+            this.SetMovemetAnimation()
         }
         if (OldImg != this.CurrImg){
             this.ResetFrames()
+        }
+    }
+
+    SetAttackAnimation(){
+        //In First Frame Set Attack Animation
+        if ((this.bRightMove && this.frameX == 0) || (!this.bRightMove && (this.frameX == this.GetImgFrames(this.CurrImg) - 1))){
+            if (this.CurrImg == this.Attack1Anim.Right || 
+                this.CurrImg == this.Attack1Anim.Left) {
+                if (this.bRightMove) this.CurrImg = this.Attack2Anim.Right
+                else                 this.CurrImg = this.Attack2Anim.Left
+            } else {
+                if (this.bRightMove) this.CurrImg = this.Attack1Anim.Right
+                else                 this.CurrImg = this.Attack1Anim.Left
+            }
+        //In Last Frame clear attack Flags
+        } else if ((!this.bRightMove && this.frameX == 0) || (this.bRightMove && (this.frameX  == this.GetImgFrames(this.CurrImg) - 1))){
+            this.bAttack = false
+            if (this.bNextAttack){
+                this.bAttack = true
+            }
+            this.bNextAttack = false
+        }
+    }
+    SetMovemetAnimation(){
+        if (this.dx == 0 && this.dy == 0 && !this.bIsFalling){
+            if (this.bRightMove) {
+                this.CurrImg = this.MovAnim.IdleRight
+            } else {
+                this.CurrImg = this.MovAnim.IdleLeft
+            }
+        } else if (this.bIsFalling){
+            if (this.bRightMove) {
+                this.CurrImg = this.JumpAnim.FallRight
+            } else {
+                this.CurrImg = this.JumpAnim.FallLeft
+            }
+        } else {
+            if (this.bRightMove) {
+                this.CurrImg = this.MovAnim.RunRight
+            } else {
+                this.CurrImg = this.MovAnim.RunLeft
+            }
         }
     }
 
