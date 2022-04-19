@@ -81,13 +81,14 @@ class Pawn extends Actor {
     this.frameX = 0
     this.frameY = 0
     this.CurrImg = this.MovAnim.IdleRight
-    this.NextImg = new Image()
     this.bRightMove = true
     this.GracAcc = 2
     this.bIsFalling = true
     this.bHCollision = false
     this.bAttack = false
     this.bNextAttack = false
+    this.AnimSlow = 2
+    this.SlowCounter = 0
     }
 
     Collision(side){
@@ -163,6 +164,24 @@ class Pawn extends Actor {
         } else {
             this.SetFrame("last")
         }
+        this.SlowCounter = 0
+    }
+
+    GetFrame(){
+        //0 -> first frame
+        //1 -> last frame
+        //2 -> greather than last
+        if (this.SlowCounter <= 0){
+            if ( this.bRightMove &&  this.frameX == 0) {return 0}
+            if (!this.bRightMove && (this.frameX == this.GetImgFrames(this.CurrImg) - 1)) {return 0}
+        } 
+        if (this.SlowCounter >= (this.AnimSlow - 1)){ 
+            if (!this.bRightMove && this.frameX == 0) {return 1}
+            if ( this.bRightMove  && (this.frameX == this.GetImgFrames(this.CurrImg) - 1)) {return 1}
+        }
+        if (!this.bRightMove && (this.frameX < 0)) {return 2}
+        if ( this.bRightMove && (this.frameX > this.GetImgFrames(this.CurrImg) - 1)) {return 2}
+        return -1
     }
 
     SetCurrentAnimation(){
@@ -179,7 +198,8 @@ class Pawn extends Actor {
 
     SetAttackAnimation(){
         //In First Frame Set Attack Animation
-        if ((this.bRightMove && this.frameX == 0) || (!this.bRightMove && (this.frameX == this.GetImgFrames(this.CurrImg) - 1))){
+        var AnimFrame = this.GetFrame()
+        if (AnimFrame == 0){
             if (this.CurrImg == this.Attack1Anim.Right || 
                 this.CurrImg == this.Attack1Anim.Left) {
                 if (this.bRightMove) this.CurrImg = this.Attack2Anim.Right
@@ -189,7 +209,7 @@ class Pawn extends Actor {
                 else                 this.CurrImg = this.Attack1Anim.Left
             }
         //In Last Frame clear attack Flags
-        } else if ((!this.bRightMove && this.frameX == 0) || (this.bRightMove && (this.frameX  == this.GetImgFrames(this.CurrImg) - 1))){
+        } else if (AnimFrame == 1){
             this.bAttack = false
             if (this.bNextAttack){
                 this.bAttack = true
@@ -229,16 +249,18 @@ class Pawn extends Actor {
         this.Gravitation()
         this.SetCurrentAnimation()
         this.drawSprite(this.CurrImg, this.width * this.frameX, 0, this.width, this.height, (this.x - (this.width)), (this.y - this.height * 2) , this.width * 2, this.height * 2)
-        if(this.bRightMove){
-            this.frameX++
-            if(this.frameX >= this.GetImgFrames(this.CurrImg)){
-                this.SetFrame("first")
-            }
-        } else {
-            this.frameX--
-            if(this.frameX < 0){
-                this.SetFrame("last")
-            }
+        this.SlowCounter++
+        //Anim Frame increase
+        if (this.SlowCounter >= this.AnimSlow){
+            this.SlowCounter = 0
+            if (this.bRightMove) {this.frameX++}
+            else                 {this.frameX--}
+        }
+
+        //Loop Animation
+        if (this.GetFrame() == 2){
+            if (this.bRightMove) this.SetFrame("first")
+            else                 this.SetFrame("last")
         }
     }
 
