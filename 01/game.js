@@ -64,16 +64,16 @@ class Pawn extends Actor {
     this.JumpAnim.FallLeft.src   = "img/_FallLeft.png"
     this.Attack1Anim = {
         Left:  new Image(),
-        Right:  new Image()
+        Right: new Image()
     }
     this.Attack1Anim.Right.src  = "img/_Attack_Right.png"
     this.Attack1Anim.Left.src   = "img/_Attack_Left.png"
     this.Attack2Anim = {
         Left:  new Image(),
-        Right:  new Image()
+        Right: new Image()
     }
     this.Attack2Anim.Right.src  = "img/_Attack2_Right.png"
-    this.Attack2Anim.Left.src   = "img/_Attack2_Right.png"
+    this.Attack2Anim.Left.src   = "img/_Attack2_Left.png"
 
     this.ObjWidth = 40
     this.width = 120
@@ -81,10 +81,13 @@ class Pawn extends Actor {
     this.frameX = 0
     this.frameY = 0
     this.CurrImg = this.MovAnim.IdleRight
+    this.NextImg = new Image()
     this.bRightMove = true
     this.GracAcc = 2
     this.bIsFalling = true
     this.bHCollision = false
+    this.bAttack = false
+    this.bNextAttack = false
     }
 
     Collision(side){
@@ -164,29 +167,44 @@ class Pawn extends Actor {
 
     SetCurrentAnimation(){
         var OldImg = this.CurrImg
-        if ((this.CurrImg == this.Attack1Anim.Right || 
-             this.CurrImg == this.Attack1Anim.Left  ||
-             this.CurrImg == this.Attack2Anim.Right || 
-             this.CurrImg == this.Attack2Anim.Left  )){
-            if(this.bRightMove && this.frameX < (this.GetImgFrames(this.CurrImg) - 1) || (!this.bRightMove && this.frameX > 0)) return
-        }
-        if (this.dx == 0 && this.dy == 0 && !this.bIsFalling){
-            if (this.bRightMove) {
-                this.CurrImg = this.MovAnim.IdleRight
-            } else {
-                this.CurrImg = this.MovAnim.IdleLeft
-            }
-        } else if (this.bIsFalling){
-            if (this.bRightMove) {
-                this.CurrImg = this.JumpAnim.FallRight
-            } else {
-                this.CurrImg = this.JumpAnim.FallLeft
+        if (this.bAttack){
+            //In First Frame Set Attack Animation
+            if ((this.bRightMove && this.frameX == 0) || (!this.bRightMove && (this.frameX == this.GetImgFrames(this.CurrImg) - 1))){
+                if (this.CurrImg == this.Attack1Anim.Right || 
+                    this.CurrImg == this.Attack1Anim.Left) {
+                    if (this.bRightMove) this.CurrImg = this.Attack2Anim.Right
+                    else                 this.CurrImg = this.Attack2Anim.Left
+                } else {
+                    if (this.bRightMove) this.CurrImg = this.Attack1Anim.Right
+                    else                 this.CurrImg = this.Attack1Anim.Left
+                }
+            //In Last Frame clear attack Flags
+            } else if ((!this.bRightMove && this.frameX == 0) || (this.bRightMove && (this.frameX  == this.GetImgFrames(this.CurrImg) - 1))){
+                this.bAttack = false
+                if (this.bNextAttack){
+                    this.bAttack = true
+                }
+                this.bNextAttack = false
             }
         } else {
-            if (this.bRightMove) {
-                this.CurrImg = this.MovAnim.RunRight
+            if (this.dx == 0 && this.dy == 0 && !this.bIsFalling){
+                if (this.bRightMove) {
+                    this.CurrImg = this.MovAnim.IdleRight
+                } else {
+                    this.CurrImg = this.MovAnim.IdleLeft
+                }
+            } else if (this.bIsFalling){
+                if (this.bRightMove) {
+                    this.CurrImg = this.JumpAnim.FallRight
+                } else {
+                    this.CurrImg = this.JumpAnim.FallLeft
+                }
             } else {
-                this.CurrImg = this.MovAnim.RunLeft
+                if (this.bRightMove) {
+                    this.CurrImg = this.MovAnim.RunRight
+                } else {
+                    this.CurrImg = this.MovAnim.RunLeft
+                }
             }
         }
         if (OldImg != this.CurrImg){
@@ -196,6 +214,8 @@ class Pawn extends Actor {
 
     OnUpdate() {
         super.OnUpdate()
+        if (this.bAttack) this.dx = 0
+        else              this.dx = this.HMove.right + this.HMove.left
         this.x = this.x + (this.dx * this.Speed)
         this.y = this.y + (this.dy * this.GracAcc)
         this.LeftRightMovement()
@@ -208,29 +228,20 @@ class Pawn extends Actor {
                 this.SetFrame("first")
             }
         } else {
-            if(this.frameX <= 0){
+            this.frameX--
+            if(this.frameX < 0){
                 this.SetFrame("last")
             }
-            this.frameX--
         }
     }
 
     Attack() {
-        if (this.CurrImg == this.Attack1Anim.Right || this.CurrImg == this.Attack1Anim.Left) {
-            if (this.bRightMove){
-                this.CurrImg = this.Attack2Anim.Right
-            } else {
-                this.CurrImg = this.Attack2Anim.Left;
-            }
-            return
-        } else if (this.CurrImg == this.Attack2Anim.Right || this.CurrImg == this.Attack2Anim.Left) return //TODO Set Next Aniamtion
-
-        if (this.bRightMove){
-            this.CurrImg = this.Attack1Anim.Right
+        if (this.bAttack){
+            this.bNextAttack = true
         } else {
-            this.CurrImg = this.Attack1Anim.Left;
+            this.bAttack = true
+            this.ResetFrames()
         }
-        this.ResetFrames()
     }
 }
 
@@ -279,11 +290,9 @@ class PlayerPawn extends Pawn{
                 break
             case 'Attack':
                 super.Attack()
-                console.log("PLayer Pawn Attack")
             default:
                 break
         }
-        this.dx = this.HMove.right + this.HMove.left
     }
 }
 
