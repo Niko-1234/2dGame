@@ -41,6 +41,14 @@ class Pawn extends Actor {
     super(x, y, radius, color)
     this.dx = 0
     this.dy = 0
+    this.HMove = {
+        left: 0,
+        right: 0
+    }
+    this.VMove = {
+        up: 0,
+        down: 0
+    }
     this.Speed = speed
     this.MovAnim = {
         IdleRight:  new Image(),
@@ -48,32 +56,32 @@ class Pawn extends Actor {
         RunRight:   new Image(),
         RunLeft:    new Image()
     }
-    this.MovAnim.IdleRight.src  = "img/_IdleRight.png"
-    this.MovAnim.IdleLeft.src   = "img/_IdleLeft.png"
-    this.MovAnim.RunRight.src   = "img/_RunRight.png"
-    this.MovAnim.RunLeft.src    = "img/_RunLeft.png"
+    this.MovAnim.IdleRight.src  = "img/Knight/_IdleRight.png"
+    this.MovAnim.IdleLeft.src   = "img/Knight/_IdleLeft.png"
+    this.MovAnim.RunRight.src   = "img/Knight/_RunRight.png"
+    this.MovAnim.RunLeft.src    = "img/Knight/_RunLeft.png"
     this.JumpAnim = {
         JumpStart:  new Image(),
         FallRight:  new Image(),
         FallLeft:   new Image(),
         JumpEnd:    new Image()
     }
-    this.JumpAnim.FallRight.src  = "img/_FallRight.png"
-    this.JumpAnim.FallLeft.src   = "img/_FallLeft.png"
-    this.JumpAnim.FallRight.src  = "img/_FallRight.png"
-    this.JumpAnim.FallLeft.src   = "img/_FallLeft.png"
+    this.JumpAnim.FallRight.src  = "img/Knight/_FallRight.png"
+    this.JumpAnim.FallLeft.src   = "img/Knight/_FallLeft.png"
+    this.JumpAnim.FallRight.src  = "img/Knight/_FallRight.png"
+    this.JumpAnim.FallLeft.src   = "img/Knight/_FallLeft.png"
     this.Attack1Anim = {
         Left:  new Image(),
         Right: new Image()
     }
-    this.Attack1Anim.Right.src  = "img/_Attack_Right.png"
-    this.Attack1Anim.Left.src   = "img/_Attack_Left.png"
+    this.Attack1Anim.Right.src  = "img/Knight/_Attack_Right.png"
+    this.Attack1Anim.Left.src   = "img/Knight/_Attack_Left.png"
     this.Attack2Anim = {
         Left:  new Image(),
         Right: new Image()
     }
-    this.Attack2Anim.Right.src  = "img/_Attack2_Right.png"
-    this.Attack2Anim.Left.src   = "img/_Attack2_Left.png"
+    this.Attack2Anim.Right.src  = "img/Knight/_Attack2_Right.png"
+    this.Attack2Anim.Left.src   = "img/Knight/_Attack2_Left.png"
 
     this.ObjWidth = 40
     this.width = 120
@@ -272,20 +280,6 @@ class Pawn extends Actor {
             this.ResetFrames()
         }
     }
-}
-
-class PlayerPawn extends Pawn{
-    constructor(x ,y ,radius, color, speed){
-        super(x ,y ,radius, color, speed)
-        this.HMove = {
-            left: 0,
-            right: 0
-        }
-        this.VMove = {
-            up: 0,
-            down: 0
-        }
-    }
 
     Input(InputEventValue) {
         switch (InputEventValue) {
@@ -318,10 +312,108 @@ class PlayerPawn extends Pawn{
                 }
                 break
             case 'Attack':
-                super.Attack()
+                this.Attack()
             default:
                 break
         }
+    }
+}
+
+class PlayerPawn extends Pawn{
+    constructor(x ,y ,radius, color, speed){
+        super(x ,y ,radius, color, speed)
+    }
+}
+
+class EnemyPawn extends Pawn{
+    constructor(x ,y ,radius, color, speed, World){
+        super(x ,y ,radius, color, speed)
+        this.GameWorld = World
+        this.PlayerChar = this.GameWorld.GetPlayerChar()
+        this.MovAnim = {
+            IdleRight:  new Image(),
+            IdleLeft:   new Image(),
+            RunRight:   new Image(),
+            RunLeft:    new Image()
+        }
+        this.MovAnim.IdleRight.src  = "img/Skelet/Skelet_Idle_R.png"
+        this.MovAnim.IdleLeft.src   = "img/Skelet/Skelet_Idle_L.png"
+        this.MovAnim.RunRight.src   = "img/Skelet/Skelet_Run_R.png"
+        this.MovAnim.RunLeft.src    = "img/Skelet/Skelet_Run_L.png"
+        this.JumpAnim = {
+            JumpStart:  new Image(),
+            FallRight:  new Image(),
+            FallLeft:   new Image(),
+            JumpEnd:    new Image()
+        }
+        this.JumpAnim.FallRight.src  = "img/Skelet/Skelet_Idle_R.png"
+        this.JumpAnim.FallLeft.src   = "img/Skelet/Skelet_Idle_L.png"
+        this.Attack1Anim = {
+            Left:  new Image(),
+            Right: new Image()
+        }
+        this.Attack1Anim.Right.src  = "img/Knight/_Attack_Right.png"
+        this.Attack1Anim.Left.src   = "img/Knight/_Attack_Left.png"
+        this.Attack2Anim = {
+            Left:  new Image(),
+            Right: new Image()
+        }
+        this.Attack2Anim.Right.src  = "img/Knight/_Attack2_Right.png"
+        this.Attack2Anim.Left.src   = "img/Knight/_Attack2_Left.png"
+
+        this.width = 80
+        this.height = 60 
+        this.AgresionRange = 150
+        this.MoveRange = 0  
+        this.MoveWay = 0  
+    }
+
+    MoveTo(X, Range) {
+        // X     - move to point
+        // Range - acceptable range
+        if (Math.abs(X - this.x) > Range){
+            if (X - this.x > 0) {
+                this.Input("MoveLeftEnd")
+                this.Input("MoveRightStart")
+            } else {
+                this.Input("MoveRightEnd")
+                this.Input("MoveLeftStart")
+            }
+        } else {
+            this.Input("MoveLeftEnd")
+            this.Input("MoveRightEnd")
+        }
+    }
+
+    VectorLength(Sx, Sy, Ex ,Ey){
+        var Length = 0
+        Length = Math.sqrt(Math.pow(Ex - Sx, 2) + Math.pow(Ey - Sy, 2))
+        return Length
+    }
+
+    AIControll(){ //Simple AI control
+        if (this.VectorLength(this.PlayerChar.x, this.x, this.PlayerChar.y, this.y) < this.AgresionRange)//If Player is close
+        {
+            this.MoveTo(this.PlayerChar.x, 50) //Move to player
+        } 
+        else
+        {
+            if (this.MoveRange <= 0){ //Find Random Point
+                this.MoveRange = Math.random() * 200
+                this.MoveWay = this.MoveRange * (Math.random() - 0.5)
+            }
+            if (Math.abs(this.MoveWay) < 40){ //Random Wait or go 
+                this.MoveTo(this.x, 10) //Wait
+            } else {
+                this.MoveTo(this.x + this.MoveWay, 0) //Move to Random
+            }
+            this.MoveRange -= this.Speed // Distanecte and Time substitute
+            console.log(this.MoveRange, this.MoveWay)
+        }
+    }
+    OnUpdate(){
+        super.OnUpdate()
+        this.AIControll()
     }
 }
 
@@ -349,6 +441,8 @@ class Game {
     BeginPlay() {
         this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'blue', 10))
         this.SpawnPawn(this.GameWorld.GetPlayerChar())
+        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'red', 10, this.GameWorld))
+        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'green', 10, this.GameWorld))
         //floor
         this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'red'))
         //platform
