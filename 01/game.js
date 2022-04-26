@@ -253,8 +253,10 @@ class Pawn extends Actor {
 
     OnUpdate() {
         super.OnUpdate()
-        if (this.bAttack) this.dx = 0
+
+        if (this.bAttack || this.bHCollision) this.dx = 0
         else              this.dx = this.HMove.right + this.HMove.left
+
         this.x = this.x + (this.dx * this.Speed)
         this.y = this.y + (this.dy * this.GracAcc)
         this.LeftRightMovement()
@@ -292,10 +294,11 @@ class Pawn extends Actor {
                 if (this.bHCollision) {
                     this.x++
                     this.bHCollision = false
-                }
+                }     
                 break
             case 'MoveLeftStart':
                 this.HMove.left = -1
+                console.log(this.x)
                 if (this.bHCollision) {
                     this.x--
                     this.bHCollision = false
