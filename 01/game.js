@@ -93,6 +93,7 @@ class Pawn extends Actor {
     this.GracAcc = 2
     this.bIsFalling = true
     this.bHCollision = false
+    this.bRightCollision = false
     this.bAttack = false
     this.bNextAttack = false
     this.AnimSlow = 2
@@ -109,9 +110,13 @@ class Pawn extends Actor {
                 this.dy = 0
                 break;
             case "left":
+                this.dx = 0
+                this.bHCollision = true
+                this.bRightCollision = false
             case "right":
                 this.dx = 0
                 this.bHCollision = true
+                this.bRightCollision = true
                 break;
             case "no":
                 this.bIsFalling = true
@@ -179,9 +184,11 @@ class Pawn extends Actor {
         //0 -> first frame
         //1 -> last frame
         //2 -> greather than last
+        //3 -> middle frame
         if (this.SlowCounter <= 0){
             if ( this.bRightMove &&  this.frameX == 0) {return 0}
             if (!this.bRightMove && (this.frameX == this.GetImgFrames(this.CurrImg) - 1)) {return 0}
+            if (this.frameX == Math.ceil(this.GetImgFrames(this.CurrImg)/2)) {return 3}
         } 
         if (this.SlowCounter >= (this.AnimSlow - 1)){ 
             if (!this.bRightMove && this.frameX == 0) {return 1}
@@ -223,6 +230,8 @@ class Pawn extends Actor {
                 this.bAttack = true
             }
             this.bNextAttack = false
+        } else if (AnimFrame == 3) {
+            console.log("Try deal damage")
         }
     }
     SetMovemetAnimation(){
@@ -285,14 +294,14 @@ class Pawn extends Actor {
         switch (InputEventValue) {
             case 'MoveRightStart':
                 this.HMove.right = 1
-                if (this.bHCollision) {
+                if (this.bHCollision && !this.bRightCollision) {
                     this.x++
                     this.bHCollision = false
                 }
                 break
             case 'MoveLeftStart':
                 this.HMove.left = -1
-                if (this.bHCollision) {
+                if (this.bHCollision && this.bRightCollision) {
                     this.x--
                     this.bHCollision = false
                 }
@@ -326,7 +335,7 @@ class PlayerPawn extends Pawn{
 }
 
 class EnemyPawn extends Pawn{
-    constructor(x ,y ,radius, color, speed, World){
+    constructor(x ,y ,radius, color, speed, World, Range){
         super(x ,y ,radius, color, speed)
         this.GameWorld = World
         this.PlayerChar = this.GameWorld.GetPlayerChar()
@@ -348,24 +357,28 @@ class EnemyPawn extends Pawn{
         }
         this.JumpAnim.FallRight.src  = "img/Skelet/Skelet_Idle_R.png"
         this.JumpAnim.FallLeft.src   = "img/Skelet/Skelet_Idle_L.png"
+
         this.Attack1Anim = {
             Left:  new Image(),
             Right: new Image()
         }
-        this.Attack1Anim.Right.src  = "img/Knight/_Attack_Right.png"
-        this.Attack1Anim.Left.src   = "img/Knight/_Attack_Left.png"
+        this.Attack1Anim.Right.src  = "img/Skelet/Skelet_Attack1_R.png"
+        this.Attack1Anim.Left.src   = "img/Skelet/Skelet_Attack1_L.png"
+
         this.Attack2Anim = {
             Left:  new Image(),
             Right: new Image()
         }
-        this.Attack2Anim.Right.src  = "img/Knight/_Attack2_Right.png"
-        this.Attack2Anim.Left.src   = "img/Knight/_Attack2_Left.png"
+        this.Attack2Anim.Right.src  = "img/Skelet/Skelet_Attack2_R.png"
+        this.Attack2Anim.Left.src   = "img/Skelet/Skelet_Attack2_L.png"
 
         this.width = 80
         this.height = 60 
-        this.AgresionRange = 150
+        this.AgresionRange = 250
+        this.AttackRange = Range
         this.MoveRange = 0  
         this.MoveWay = 0  
+        this.AnimSlow = 3
     }
 
     MoveTo(X, Range) {
@@ -392,9 +405,16 @@ class EnemyPawn extends Pawn{
     }
 
     AIControll(){ //Simple AI control
-        if (this.VectorLength(this.PlayerChar.x, this.x, this.PlayerChar.y, this.y) < this.AgresionRange)//If Player is close
+        var DistanceToPlayer = this.VectorLength(this.PlayerChar.x, this.PlayerChar.y, this.x, this.y)
+        if (DistanceToPlayer <= this.AgresionRange)//If Player is close
         {
-            this.MoveTo(this.PlayerChar.x, 50) //Move to player
+            if (DistanceToPlayer < this.AttackRange){//If player is in attack range
+                this.Input("MoveLeftEnd")
+                this.Input("MoveRightEnd")
+                if (Math.random() > 0.95) this.Attack()
+            } else {
+                this.MoveTo(this.PlayerChar.x, this.AttackRange) //Move to player
+            }
         } 
         else
         {
@@ -408,7 +428,6 @@ class EnemyPawn extends Pawn{
                 this.MoveTo(this.x + this.MoveWay, 0) //Move to Random
             }
             this.MoveRange -= this.Speed // Distanecte and Time substitute
-            console.log(this.MoveRange, this.MoveWay)
         }
     }
     OnUpdate(){
@@ -441,8 +460,7 @@ class Game {
     BeginPlay() {
         this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'blue', 10))
         this.SpawnPawn(this.GameWorld.GetPlayerChar())
-        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'red', 10, this.GameWorld))
-        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'green', 10, this.GameWorld))
+        // this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'green', 10, this.GameWorld, 80))
         //floor
         this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'red'))
         //platform
