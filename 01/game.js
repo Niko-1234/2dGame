@@ -93,7 +93,6 @@ class Pawn extends Actor {
     this.GracAcc = 2
     this.bIsFalling = true
     this.bHCollision = false
-    this.bRightCollision = false
     this.bAttack = false
     this.bNextAttack = false
     this.AnimSlow = 2
@@ -110,13 +109,9 @@ class Pawn extends Actor {
                 this.dy = 0
                 break;
             case "left":
-                this.dx = 0
-                this.bHCollision = true
-                this.bRightCollision = false
             case "right":
                 this.dx = 0
                 this.bHCollision = true
-                this.bRightCollision = true
                 break;
             case "no":
                 this.bIsFalling = true
@@ -294,14 +289,14 @@ class Pawn extends Actor {
         switch (InputEventValue) {
             case 'MoveRightStart':
                 this.HMove.right = 1
-                if (this.bHCollision && !this.bRightCollision) {
+                if (this.bHCollision) {
                     this.x++
                     this.bHCollision = false
                 }
                 break
             case 'MoveLeftStart':
                 this.HMove.left = -1
-                if (this.bHCollision && this.bRightCollision) {
+                if (this.bHCollision) {
                     this.x--
                     this.bHCollision = false
                 }
