@@ -10,10 +10,10 @@ class Actor {
 
     //Actor screen pointer TO DELETE
     draw() {
-        ctx.beginPath()
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI *2, false)
-        ctx.fillStyle = this.color
-        ctx.fill()
+        // ctx.beginPath()
+        // ctx.arc(this.x, this.y, this.radius, 0, Math.PI *2, false)
+        // ctx.fillStyle = this.color
+        // ctx.fill()
     }
 
     OnUpdate() {
@@ -32,8 +32,30 @@ class CollisionBox extends Actor {
     }
 
     draw() {
-        ctx.fillRect(this.x, this.y, this.width, this.height)
         ctx.fillStyle = this.color
+        ctx.fillRect(this.x, this.y, this.width, this.height)
+    }
+}
+
+class HealthBar {
+    constructor (x, y, color) {
+        this.x
+        this.y
+        this.Ox = x //x offset
+        this.Oy = y //y offset
+        this.width = 100
+        this.height = 10
+        this.MaxWidth = 100
+        this.MaxHeight = 10
+        this.color = color
+        this.border = 2
+    }
+
+    OnUpdate(){
+        ctx.fillStyle = 'black'
+        ctx.fillRect(this.x - this.Ox - this.border, this.y - this.Oy - this.border, this.MaxWidth + this.border*2, this.MaxHeight + this.border*2)
+        ctx.fillStyle = this.color
+        ctx.fillRect(this.x - this.Ox, this.y - this.Oy, this.width, this.height)
     }
 }
 
@@ -110,6 +132,9 @@ class Pawn extends Actor {
     this.MaxHealth = 100
     this.Health = this.MaxHealth
     this.DamageCause = 50
+    this.HPBarColor = "rgb(55, 190, 55)"
+
+    this.PawnHealth = new HealthBar(50, 100, this.HPBarColor)
     }
 
     Collision(side){
@@ -211,8 +236,7 @@ class Pawn extends Actor {
         var OldImg = this.CurrImg
         if (this.Health <= 0){
             this.SetDieAnimation()
-        } 
-        else if (this.bAttack){
+        } else if (this.bAttack){
             this.SetAttackAnimation()
         } else {
             this.SetMovemetAnimation()
@@ -295,6 +319,10 @@ class Pawn extends Actor {
 
     OnUpdate() {
         super.OnUpdate()
+        this.PawnHealth.x = this.x
+        this.PawnHealth.y = this.y
+        this.PawnHealth.width = this.Health/this.MaxHealth*100
+        this.PawnHealth.OnUpdate()
 
         if (this.bAttack     || 
             this.bHCollision ||
@@ -309,21 +337,26 @@ class Pawn extends Actor {
         this.Gravitation()
         this.SetCurrentAnimation()
         this.drawSprite(this.CurrImg, this.width * this.frameX, 0, this.width, this.height, (this.x - (this.width)), (this.y - this.height * 2) , this.width * 2, this.height * 2)
+        this.FrameHandle()
+    }
+
+    FrameHandle(){
         this.SlowCounter++
         //Anim Frame increase
-        if (this.GetFrame() == 1 && this.Health <= 0) //if pawn is death dont increase frames
+        if (!(this.GetFrame() == 1 && this.Health <= 0)) //if pawn is death dont increase frames
         {
-            //dont increase
-        } else if (this.SlowCounter >= this.AnimSlow){ //incrase frames
-            this.SlowCounter = 0
-            if (this.bRightMove) {this.frameX++}
-            else                 {this.frameX--}
-        }
+            if (this.SlowCounter >= this.AnimSlow){ //incrase frames
+                this.SlowCounter = 0
+                if (this.bRightMove) {this.frameX++}
+                else                 {this.frameX--}
+            }
+            //Loop Animation
+            if (this.GetFrame() == 2){
+                this.ResetFrames()
+            }
+        }   
 
-        //Loop Animation
-        if (this.GetFrame() == 2){
-            this.ResetFrames()
-        }
+
     }
 
     Attack() {
@@ -410,6 +443,10 @@ class EnemyPawn extends Pawn{
         this.MoveRange = 0  
         this.MoveWay = 0  
         this.AnimSlow = 3
+
+        this.HPBarColor = "rgb(190, 55, 55)"
+
+        this.PawnHealth = new HealthBar(50, 100, this.HPBarColor)
     }
 
     MoveTo(X, Range) {
@@ -489,15 +526,15 @@ class Game {
     }
     
     BeginPlay() {
-        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'blue', 10, this.GameWorld))
+        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'red', 10, this.GameWorld))
         this.SpawnPawn(this.GameWorld.GetPlayerChar())
         this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'green', 10, this.GameWorld, 80))
         //platform
         this.SpawnColisionArea(new CollisionBox(880,(canvas.height - 260),400,50,'red'))
         //box
-        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 260),100,100,'red'))
+        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 260),100,100,'blue'))
         //floor
-        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'red'))
+        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'blue'))
     }
 
     PlayerInput(InputEvent){
