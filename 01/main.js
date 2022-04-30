@@ -13,7 +13,7 @@ var world   = new World()
 
 var game    = new Game()
 
-var engine  = new Engine(game, world, controller, 18)
+var engine  = new Engine(game, world, controller, 30)
 
 //Initialize
 engine.Initialize()

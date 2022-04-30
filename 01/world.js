@@ -9,7 +9,7 @@ class World {
     OnUpdate() {
         this.actors.forEach(actor => {
             actor.OnUpdate()
-            actor.x -= (this.PlayerChar.dx * this.PlayerChar.Speed) 
+            actor.x -= (this.PlayerChar.dx * this.PlayerChar.Speed) //keep pleyr in the middle of the screen
         })
     }
 
