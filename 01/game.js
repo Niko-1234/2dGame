@@ -8,6 +8,7 @@ class Actor {
         this.dy = 0
     }
 
+    //Actor screen pointer TO DELETE
     draw() {
         ctx.beginPath()
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI *2, false)
@@ -37,8 +38,9 @@ class CollisionBox extends Actor {
 }
 
 class Pawn extends Actor {
-    constructor(x ,y ,radius, color, speed){
+    constructor(x ,y ,radius, color, speed, World){
     super(x, y, radius, color)
+    this.GameWorld = World
     this.dx = 0
     this.dy = 0
     this.HMove = {
@@ -83,6 +85,13 @@ class Pawn extends Actor {
     this.Attack2Anim.Right.src  = "img/Knight/_Attack2_Right.png"
     this.Attack2Anim.Left.src   = "img/Knight/_Attack2_Left.png"
 
+    this.DeathAnim = {
+        Left:  new Image(),
+        Right: new Image()
+    }
+    this.DeathAnim.Right.src  = "img/Knight/_Death_Right.png"
+    this.DeathAnim.Left.src   = "img/Knight/_Death_Left.png"
+
     this.ObjWidth = 40
     this.width = 120
     this.height = 80  
@@ -97,6 +106,10 @@ class Pawn extends Actor {
     this.bNextAttack = false
     this.AnimSlow = 2
     this.SlowCounter = 0
+    this.AttackRange = 0
+    this.MaxHealth = 100
+    this.Health = this.MaxHealth
+    this.DamageCause = 50
     }
 
     Collision(side){
@@ -196,13 +209,25 @@ class Pawn extends Actor {
 
     SetCurrentAnimation(){
         var OldImg = this.CurrImg
-        if (this.bAttack){
+        if (this.Health <= 0){
+            this.SetDieAnimation()
+        } 
+        else if (this.bAttack){
             this.SetAttackAnimation()
         } else {
             this.SetMovemetAnimation()
         }
         if (OldImg != this.CurrImg){
             this.ResetFrames()
+        }
+    }
+
+    SetDieAnimation(){
+        if (this.bRightMove) this.CurrImg = this.DeathAnim.Right
+        else                 this.CurrImg = this.DeathAnim.Left
+        if (this.GetFrame() == 1 && this instanceof EnemyPawn){
+            console.log("Delete it")
+            this.GameWorld.DeleteActor(this)
         }
     }
 
@@ -226,9 +251,26 @@ class Pawn extends Actor {
             }
             this.bNextAttack = false
         } else if (AnimFrame == 3) {
-            console.log("Try deal damage")
+            this.TryDealDamage()
         }
     }
+
+    TryDealDamage(){
+        let StartPoint = {x: this.x, y: this.y}
+        if(this.bRightMove) StartPoint.x += this.AttackRange/2
+        else                StartPoint.x -= this.AttackRange/2
+        var AffectedPawns = []
+        AffectedPawns = this.GameWorld.OverlapActors(StartPoint, this.AttackRange/2, this)
+        AffectedPawns.forEach(Pawn => {
+            Pawn.TakeDamage(this.DamageCause)
+        });
+    }
+
+    TakeDamage(DamageValue){
+        this.Health = Math.max(this.Health - DamageValue, 0)
+        console.log("PawnHealth: ", this.Health)
+    }
+
     SetMovemetAnimation(){
         if (this.dx == 0 && this.dy == 0 && !this.bIsFalling){
             if (this.bRightMove) {
@@ -254,8 +296,12 @@ class Pawn extends Actor {
     OnUpdate() {
         super.OnUpdate()
 
-        if (this.bAttack || this.bHCollision) this.dx = 0
-        else              this.dx = this.HMove.right + this.HMove.left
+        if (this.bAttack     || 
+            this.bHCollision ||
+            this.Health <= 0) 
+            this.dx = 0
+        else 
+            this.dx = this.HMove.right + this.HMove.left
 
         this.x = this.x + (this.dx * this.Speed)
         this.y = this.y + (this.dy * this.GracAcc)
@@ -265,7 +311,10 @@ class Pawn extends Actor {
         this.drawSprite(this.CurrImg, this.width * this.frameX, 0, this.width, this.height, (this.x - (this.width)), (this.y - this.height * 2) , this.width * 2, this.height * 2)
         this.SlowCounter++
         //Anim Frame increase
-        if (this.SlowCounter >= this.AnimSlow){
+        if (this.GetFrame() == 1 && this.Health <= 0) //if pawn is death dont increase frames
+        {
+            //dont increase
+        } else if (this.SlowCounter >= this.AnimSlow){ //incrase frames
             this.SlowCounter = 0
             if (this.bRightMove) {this.frameX++}
             else                 {this.frameX--}
@@ -273,8 +322,7 @@ class Pawn extends Actor {
 
         //Loop Animation
         if (this.GetFrame() == 2){
-            if (this.bRightMove) this.SetFrame("first")
-            else                 this.SetFrame("last")
+            this.ResetFrames()
         }
     }
 
@@ -298,7 +346,6 @@ class Pawn extends Actor {
                 break
             case 'MoveLeftStart':
                 this.HMove.left = -1
-                console.log(this.x)
                 if (this.bHCollision) {
                     this.x--
                     this.bHCollision = false
@@ -327,48 +374,34 @@ class Pawn extends Actor {
 }
 
 class PlayerPawn extends Pawn{
-    constructor(x ,y ,radius, color, speed){
-        super(x ,y ,radius, color, speed)
+    constructor(x ,y ,radius, color, speed, World){
+        super(x ,y ,radius, color, speed, World)
+        this.AttackRange = 100
     }
 }
 
 class EnemyPawn extends Pawn{
     constructor(x ,y ,radius, color, speed, World, Range){
-        super(x ,y ,radius, color, speed)
+        super(x ,y ,radius, color, speed, World)
         this.GameWorld = World
         this.PlayerChar = this.GameWorld.GetPlayerChar()
-        this.MovAnim = {
-            IdleRight:  new Image(),
-            IdleLeft:   new Image(),
-            RunRight:   new Image(),
-            RunLeft:    new Image()
-        }
+
         this.MovAnim.IdleRight.src  = "img/Skelet/Skelet_Idle_R.png"
         this.MovAnim.IdleLeft.src   = "img/Skelet/Skelet_Idle_L.png"
         this.MovAnim.RunRight.src   = "img/Skelet/Skelet_Run_R.png"
         this.MovAnim.RunLeft.src    = "img/Skelet/Skelet_Run_L.png"
-        this.JumpAnim = {
-            JumpStart:  new Image(),
-            FallRight:  new Image(),
-            FallLeft:   new Image(),
-            JumpEnd:    new Image()
-        }
+
         this.JumpAnim.FallRight.src  = "img/Skelet/Skelet_Idle_R.png"
         this.JumpAnim.FallLeft.src   = "img/Skelet/Skelet_Idle_L.png"
 
-        this.Attack1Anim = {
-            Left:  new Image(),
-            Right: new Image()
-        }
         this.Attack1Anim.Right.src  = "img/Skelet/Skelet_Attack1_R.png"
         this.Attack1Anim.Left.src   = "img/Skelet/Skelet_Attack1_L.png"
 
-        this.Attack2Anim = {
-            Left:  new Image(),
-            Right: new Image()
-        }
         this.Attack2Anim.Right.src  = "img/Skelet/Skelet_Attack2_R.png"
         this.Attack2Anim.Left.src   = "img/Skelet/Skelet_Attack2_L.png"
+
+        this.DeathAnim.Right.src  = "img/Skelet/Skelet_Die_R.png"
+        this.DeathAnim.Left.src   = "img/Skelet/Skelet_Die_L.png"
 
         this.width = 80
         this.height = 60 
@@ -456,13 +489,15 @@ class Game {
     }
     
     BeginPlay() {
-        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'blue', 10))
+        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'blue', 10, this.GameWorld))
         this.SpawnPawn(this.GameWorld.GetPlayerChar())
-        // this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'green', 10, this.GameWorld, 80))
-        //floor
-        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'red'))
+        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'green', 10, this.GameWorld, 80))
         //platform
         this.SpawnColisionArea(new CollisionBox(880,(canvas.height - 260),400,50,'red'))
+        //box
+        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 260),100,100,'red'))
+        //floor
+        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'red'))
     }
 
     PlayerInput(InputEvent){
