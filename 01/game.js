@@ -44,18 +44,101 @@ class HealthBar {
         this.Ox = x //x offset
         this.Oy = y //y offset
         this.width = 100
-        this.height = 10
-        this.MaxWidth = 100
-        this.MaxHeight = 10
+        this.height = 5
+        this.MaxWidth = this.width
+        this.MaxHeight = this.height
         this.color = color
         this.border = 2
     }
 
     OnUpdate(){
-        ctx.fillStyle = 'black'
+        ctx.fillStyle = 'grey'
         ctx.fillRect(this.x - this.Ox - this.border, this.y - this.Oy - this.border, this.MaxWidth + this.border*2, this.MaxHeight + this.border*2)
         ctx.fillStyle = this.color
         ctx.fillRect(this.x - this.Ox, this.y - this.Oy, this.width, this.height)
+    }
+}
+
+class ParticleEffect {
+    constructor () {
+        this.x = 0
+        this.y = 0
+        this.bloodImg1 = {
+            L: new Image(),
+            R: new Image()
+        }
+        this.bloodImg2 = {
+            L: new Image(),
+            R: new Image()
+        }
+        this.Images = [this.bloodImg1, this.bloodImg2]
+        this.Images[0].R.src = "img/blood/blood_1_R.png"
+        this.Images[0].L.src = "img/blood/blood_1_L.png"
+        this.Images[1].R.src = "img/blood/blood_2_R.png"
+        this.Images[1].L.src = "img/blood/blood_2_L.png"
+        this.h = 128 
+        this.w = 128
+        this.Frame = 0
+        this.MaxFrames = 4
+        this.AnimSlowCount = 0
+        this.AnimationSlow = 3
+        this.bRight = false
+        this.CurrAnim = this.Images[0].R
+        this.bPlay = false
+        this.XOff = this.x - this.w/4
+    }
+
+    drawSprite(img, sX, sY, sW, sH, dX, dY, dW, dH){
+        ctx.drawImage(img , sX, sY, sW, sH, dX, dY, dW, dH)
+    }
+
+    PlayEffect(bR) {
+        this.bRight = bR
+        if (bR) this.Frame = 0
+        else    this.Frame = this.MaxFrames
+        this.bPlay = true
+        this.SetParticleOffset()
+        this.SelectProperImg()
+    }
+
+    SetParticleOffset(){
+        if (this.bRight){
+            this.XOff = this.x - this.w * 0.2
+        } else {
+            this.XOff = this.x - this.w * 0.9
+        }
+    }
+
+    SelectProperImg(){
+        //Draw Effect
+        var Rand = Math.ceil(Math.random() * this.Images.length) - 1
+        console.log(Rand)
+        if (this.bRight) this.CurrAnim = this.Images[Rand].R
+        else             this.CurrAnim = this.Images[Rand].L
+    }
+
+    OnUpdate(){
+        if (this.bPlay){
+            this.drawSprite(this.CurrAnim, this.w * this.Frame, 0, this.w, this.h, this.XOff , this.y - this.h, this.w, this.h)
+            this.AnimSlowCount++
+            if (this.AnimSlowCount >= this.AnimationSlow){
+                this.AnimSlowCount = 0
+                if (this.bRight) this.Frame++
+                else             this.Frame--
+                    
+            }
+            if (this.bRight){
+                if (this.Frame >= this.MaxFrames){
+                    this.Frame = 0
+                    this.bPlay = false
+                }
+            } else {
+                if (this.Frame <= 0){
+                    this.Frame = this.MaxFrames
+                    this.bPlay = false
+                }
+            }
+        }
     }
 }
 
@@ -132,9 +215,8 @@ class Pawn extends Actor {
     this.MaxHealth = 100
     this.Health = this.MaxHealth
     this.DamageCause = 50
-    this.HPBarColor = "rgb(55, 190, 55)"
 
-    this.PawnHealth = new HealthBar(50, 100, this.HPBarColor)
+    this.BloodSplash = new ParticleEffect()
     }
 
     Collision(side){
@@ -286,13 +368,16 @@ class Pawn extends Actor {
         var AffectedPawns = []
         AffectedPawns = this.GameWorld.OverlapActors(StartPoint, this.AttackRange/2, this)
         AffectedPawns.forEach(Pawn => {
-            Pawn.TakeDamage(this.DamageCause)
+            Pawn.TakeDamage(this.DamageCause, this.bRightMove)
         });
     }
 
-    TakeDamage(DamageValue){
-        this.Health = Math.max(this.Health - DamageValue, 0)
-        console.log("PawnHealth: ", this.Health)
+    TakeDamage(DamageValue, bSide){
+        if (this.Health > 0){
+            this.Health = Math.max(this.Health - DamageValue, 0)
+            this.BloodSplash.PlayEffect(bSide)
+            console.log("PawnHealth: ", this.Health)
+        }
     }
 
     SetMovemetAnimation(){
@@ -319,11 +404,6 @@ class Pawn extends Actor {
 
     OnUpdate() {
         super.OnUpdate()
-        this.PawnHealth.x = this.x
-        this.PawnHealth.y = this.y
-        this.PawnHealth.width = this.Health/this.MaxHealth*100
-        this.PawnHealth.OnUpdate()
-
         if (this.bAttack     || 
             this.bHCollision ||
             this.Health <= 0) 
@@ -338,6 +418,18 @@ class Pawn extends Actor {
         this.SetCurrentAnimation()
         this.drawSprite(this.CurrImg, this.width * this.frameX, 0, this.width, this.height, (this.x - (this.width)), (this.y - this.height * 2) , this.width * 2, this.height * 2)
         this.FrameHandle()
+
+        // HP Update
+        if (this.PawnHealth){
+        this.PawnHealth.x = this.x
+        this.PawnHealth.y = this.y
+        this.PawnHealth.width = this.Health/this.MaxHealth*100
+        this.PawnHealth.OnUpdate()
+        }
+        // Blood Splash Update
+        this.BloodSplash.x = this.x
+        this.BloodSplash.y = this.y
+        this.BloodSplash.OnUpdate()
     }
 
     FrameHandle(){
@@ -355,16 +447,25 @@ class Pawn extends Actor {
                 this.ResetFrames()
             }
         }   
-
-
     }
 
     Attack() {
+        if (this.Health <= 0) return
         if (this.bAttack){
             this.bNextAttack = true
         } else {
             this.bAttack = true
             this.ResetFrames()
+        }
+    }
+
+    Jump() {
+        if (this.Health <= 0) return
+        if (!this.bIsFalling){
+            this.y--
+            this.dy = -10
+            this.frameX = 0
+            this.bIsFalling = true
         }
     }
 
@@ -391,12 +492,7 @@ class Pawn extends Actor {
                 this.HMove.left = 0
                 break
             case 'JumpStart':
-                if (!this.bIsFalling){
-                    this.y--
-                    this.dy = -10
-                    this.frameX = 0
-                    this.bIsFalling = true
-                }
+                this.Jump()
                 break
             case 'Attack':
                 this.Attack()
@@ -410,6 +506,9 @@ class PlayerPawn extends Pawn{
     constructor(x ,y ,radius, color, speed, World){
         super(x ,y ,radius, color, speed, World)
         this.AttackRange = 100
+
+        this.HPBarColor = "rgb(55, 190, 55)"
+        this.PawnHealth = new HealthBar(50, 110, this.HPBarColor)
     }
 }
 
@@ -443,10 +542,10 @@ class EnemyPawn extends Pawn{
         this.MoveRange = 0  
         this.MoveWay = 0  
         this.AnimSlow = 3
+        this.DamageCause = 20
 
-        this.HPBarColor = "rgb(190, 55, 55)"
-
-        this.PawnHealth = new HealthBar(50, 100, this.HPBarColor)
+        // this.HPBarColor = "rgb(190, 55, 55)"
+        // this.PawnHealth = new HealthBar(50, 110, this.HPBarColor)
     }
 
     MoveTo(X, Range) {
@@ -498,6 +597,16 @@ class EnemyPawn extends Pawn{
             this.MoveRange -= this.Speed // Distanecte and Time substitute
         }
     }
+
+    TryDealDamage(){
+        let StartPoint = {x: this.x, y: this.y}
+        if(this.bRightMove) StartPoint.x += this.AttackRange/2
+        else                StartPoint.x -= this.AttackRange/2
+        if (this.PlayerChar.x <= StartPoint.x + this.AttackRange/2 && this.PlayerChar.x >= StartPoint.x - this.AttackRange/2 &&
+            this.PlayerChar.y <= StartPoint.y + this.AttackRange/2 && this.PlayerChar.y >= StartPoint.y - this.AttackRange/2)
+            this.PlayerChar.TakeDamage(this.DamageCause, this.bRightMove)
+    }
+
     OnUpdate(){
         super.OnUpdate()
         this.AIControll()

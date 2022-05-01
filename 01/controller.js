@@ -4,7 +4,7 @@ class Controller {
 
     InputDown(key){
         switch (key) {
-            case 'w':
+            case 'p':
                 return "MoveUpStart"
             case 's':
                 return "MoveDownStart"
@@ -12,7 +12,7 @@ class Controller {
                 return "MoveRightStart"
             case 'a':
                 return "MoveLeftStart"
-            case ' ':
+            case 'w':
                 return "JumpStart"
             default:
                 return "None"
