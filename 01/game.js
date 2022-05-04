@@ -29,11 +29,21 @@ class CollisionBox extends Actor {
         this.height = height
         this.width = width
         this.color = color
+        this.BoxTexture = new Image()
+        this.BoxTexture.src = "img/platform/platform.png"
     }
 
     draw() {
-        ctx.fillStyle = this.color
-        ctx.fillRect(this.x, this.y, this.width, this.height)
+        
+    }
+
+    drawSprite(img, sX, sY, sW, sH, dX, dY, dW, dH){
+        ctx.drawImage(img , sX, sY, sW, sH, dX, dY, dW, dH)
+    }
+
+    OnUpdate(){
+        super.OnUpdate()
+        this.drawSprite(this.BoxTexture, 0 ,0, this.width, this.height, this.x, this.y, this.width, this.height)
     }
 }
 
@@ -332,7 +342,6 @@ class Pawn extends Actor {
         if (this.bRightMove) this.CurrImg = this.DeathAnim.Right
         else                 this.CurrImg = this.DeathAnim.Left
         if (this.GetFrame() == 1 && this instanceof EnemyPawn){
-            console.log("Delete it")
             this.GameWorld.DeleteActor(this)
         }
     }
@@ -463,7 +472,7 @@ class Pawn extends Actor {
         if (this.Health <= 0) return
         if (!this.bIsFalling){
             this.y--
-            this.dy = -10
+            this.dy = -12
             this.frameX = 0
             this.bIsFalling = true
         }
@@ -637,13 +646,22 @@ class Game {
     BeginPlay() {
         this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'red', 10, this.GameWorld))
         this.SpawnPawn(this.GameWorld.GetPlayerChar())
-        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/3, 5, 'green', 10, this.GameWorld, 80))
-        //platform
-        this.SpawnColisionArea(new CollisionBox(880,(canvas.height - 260),400,50,'red'))
-        //box
-        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 260),100,100,'blue'))
-        //floor
-        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - 200),canvas.width,100,'blue'))
+        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/2, 5, 'green', 10, this.GameWorld, 80))
+        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/2, 5, 'green', 10, this.GameWorld, 60))
+        //floor1,2,3
+        const Unit = 128
+        const FloorHeight = Unit - 8
+        const TowerHeight = Unit*4 - 8 
+        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue'))
+        this.SpawnColisionArea(new CollisionBox(-canvas.width,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue'))
+        this.SpawnColisionArea(new CollisionBox(canvas.width,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue'))
+        //left tower
+        this.SpawnColisionArea(new CollisionBox(-canvas.width*1.5,(canvas.height - TowerHeight),Unit*6.5,TowerHeight,'blue'))
+        //right tower
+        this.SpawnColisionArea(new CollisionBox(canvas.width*2,(canvas.height - TowerHeight),Unit*6.5,TowerHeight,'blue'))
+        //left platform
+        // this.SpawnColisionArea(new CollisionBox(-canvas.width + Unit*1.5,(canvas.height - Unit*2),Unit*2,Unit*0.25,'blue'))
+
     }
 
     PlayerInput(InputEvent){
