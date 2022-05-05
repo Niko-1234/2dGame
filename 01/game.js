@@ -22,7 +22,7 @@ class Actor {
 }
 
 class CollisionBox extends Actor {
-    constructor(x, y, width, height, color) {
+    constructor(x, y, width, height, color, src) {
         super(x, y, 0, color)
         this.x = x
         this.y = y
@@ -30,7 +30,7 @@ class CollisionBox extends Actor {
         this.width = width
         this.color = color
         this.BoxTexture = new Image()
-        this.BoxTexture.src = "img/platform/platform.png"
+        this.BoxTexture.src = src
     }
 
     draw() {
@@ -62,7 +62,7 @@ class HealthBar {
     }
 
     OnUpdate(){
-        ctx.fillStyle = 'grey'
+        ctx.fillStyle = 'rgb(20,20,20)'
         ctx.fillRect(this.x - this.Ox - this.border, this.y - this.Oy - this.border, this.MaxWidth + this.border*2, this.MaxHeight + this.border*2)
         ctx.fillStyle = this.color
         ctx.fillRect(this.x - this.Ox, this.y - this.Oy, this.width, this.height)
@@ -343,6 +343,8 @@ class Pawn extends Actor {
         else                 this.CurrImg = this.DeathAnim.Left
         if (this.GetFrame() == 1 && this instanceof EnemyPawn){
             this.GameWorld.DeleteActor(this)
+        } else if (this.GetFrame() == 1 && this instanceof PlayerPawn) {
+            window.location.reload();
         }
     }
 
@@ -515,17 +517,19 @@ class PlayerPawn extends Pawn{
     constructor(x ,y ,radius, color, speed, World){
         super(x ,y ,radius, color, speed, World)
         this.AttackRange = 100
+        this.points = 0
 
-        this.HPBarColor = "rgb(55, 190, 55)"
+        this.HPBarColor = "rgb(100, 195, 50)"
         this.PawnHealth = new HealthBar(50, 110, this.HPBarColor)
     }
 }
 
 class EnemyPawn extends Pawn{
-    constructor(x ,y ,radius, color, speed, World, Range){
+    constructor(x ,y ,radius, color, speed, World, Range, ID){
         super(x ,y ,radius, color, speed, World)
         this.GameWorld = World
         this.PlayerChar = this.GameWorld.GetPlayerChar()
+        this.id = ID
 
         this.MovAnim.IdleRight.src  = "img/Skelet/Skelet_Idle_R.png"
         this.MovAnim.IdleLeft.src   = "img/Skelet/Skelet_Idle_L.png"
@@ -552,9 +556,14 @@ class EnemyPawn extends Pawn{
         this.MoveWay = 0  
         this.AnimSlow = 3
         this.DamageCause = 20
+    }
 
-        // this.HPBarColor = "rgb(190, 55, 55)"
-        // this.PawnHealth = new HealthBar(50, 110, this.HPBarColor)
+    SetDieAnimation(){
+        if (this.GetFrame() == 1){
+            this.PlayerChar.points += 10
+            console.log(this.PlayerChar.points)
+        }
+        super.SetDieAnimation()
     }
 
     MoveTo(X, Range) {
@@ -589,7 +598,7 @@ class EnemyPawn extends Pawn{
                 this.Input("MoveRightEnd")
                 if (Math.random() > 0.95) this.Attack()
             } else {
-                this.MoveTo(this.PlayerChar.x, this.AttackRange) //Move to player
+                this.MoveTo(this.PlayerChar.x, this.AttackRange - 5) //Move to player
             }
         } 
         else
@@ -622,9 +631,25 @@ class EnemyPawn extends Pawn{
     }
 }
 
+class Widget {
+    constructor() {
+        
+    }
+    OnUpdate(points){
+        var text = points
+        ctx.font = "30px Arial";
+        ctx.fillStyle = 'white'
+        ctx.fillText("score: " + text, 10, 50); 
+    }
+}
+
 class Game {
     constructor (){
         this.GameWorld
+        this.GameFPS = 0
+        this.Unit = 128
+        this.EnemyCounter = 0
+        this.PointsText = new Widget()
     }
 
     SpawnActor(actor) {
@@ -639,29 +664,80 @@ class Game {
         this.GameWorld.AddColisionBox(actor)
     }
 
-    Initialize(world) {
+    Initialize(world, fps) {
         this.GameWorld = world
+        this.GameFPS = fps
+        this.FPSCounter = 0
+        this.SecCounter = 0
     }
     
     BeginPlay() {
-        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height/2, 5, 'red', 10, this.GameWorld))
-        this.SpawnPawn(this.GameWorld.GetPlayerChar())
-        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/2, 5, 'green', 10, this.GameWorld, 80))
-        this.SpawnPawn(new EnemyPawn(canvas.width/3, canvas.height/2, 5, 'green', 10, this.GameWorld, 60))
+        //STATIC MESHES
         //floor1,2,3
-        const Unit = 128
-        const FloorHeight = Unit - 8
-        const TowerHeight = Unit*4 - 8 
-        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue'))
-        this.SpawnColisionArea(new CollisionBox(-canvas.width,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue'))
-        this.SpawnColisionArea(new CollisionBox(canvas.width,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue'))
-        //left tower
-        this.SpawnColisionArea(new CollisionBox(-canvas.width*1.5,(canvas.height - TowerHeight),Unit*6.5,TowerHeight,'blue'))
-        //right tower
-        this.SpawnColisionArea(new CollisionBox(canvas.width*2,(canvas.height - TowerHeight),Unit*6.5,TowerHeight,'blue'))
-        //left platform
-        // this.SpawnColisionArea(new CollisionBox(-canvas.width + Unit*1.5,(canvas.height - Unit*2),Unit*2,Unit*0.25,'blue'))
+        const FloorHeight = this.Unit
+        const TowerHeight = this.Unit*4
+        const Platformtexture = "img/platform/platform.png"
+        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue',Platformtexture))
+        this.SpawnColisionArea(new CollisionBox(-canvas.width,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue',Platformtexture))
+        this.SpawnColisionArea(new CollisionBox(canvas.width,(canvas.height - FloorHeight),canvas.width,FloorHeight,'blue',Platformtexture))
 
+        //left tower
+        this.SpawnColisionArea(new CollisionBox(-canvas.width*1.5,(canvas.height - TowerHeight),this.Unit*6.5,TowerHeight,'blue',Platformtexture))
+        //right tower
+        this.SpawnColisionArea(new CollisionBox(canvas.width*2,(canvas.height - TowerHeight),this.Unit*6.5,TowerHeight,'blue',Platformtexture))
+
+        const PlatformWidth = this.Unit*4
+        const PlatformHeight = this.Unit*0.25
+        //left platform
+        this.SpawnColisionArea(new CollisionBox(-canvas.width + this.Unit*1.5,(canvas.height - this.Unit*2),PlatformWidth,PlatformHeight,'blue',Platformtexture))
+        //middle platforms
+        this.SpawnColisionArea(new CollisionBox(0,(canvas.height - this.Unit*2),PlatformWidth,PlatformHeight,'blue',Platformtexture))
+        this.SpawnColisionArea(new CollisionBox(this.Unit*4,(canvas.height - this.Unit*3),PlatformWidth*1.5,PlatformHeight,'blue',Platformtexture))
+        //right platform
+        this.SpawnColisionArea(new CollisionBox(canvas.width + this.Unit*4,(canvas.height - this.Unit*2),PlatformWidth*1.5,PlatformHeight,'blue',Platformtexture))
+
+        //boxes
+        const Boxtexture = "img/platform/box.png"
+        const BoxWidth = this.Unit
+        const BoxHeight = this.Unit
+        this.SpawnColisionArea(new CollisionBox(canvas.width + this.Unit*1,(canvas.height - this.Unit*2),BoxWidth,BoxHeight,'blue',Boxtexture))
+
+        //PAWNS
+        this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height - this.Unit, 5, 'red', 10, this.GameWorld))
+        this.SpawnPawn(this.GameWorld.GetPlayerChar())
+
+        //WIDGETS
+
+    }
+
+    OnUpdate(){
+        this.FPSCounter++
+        if(this.FPSCounter == this.GameFPS){
+            this.FPSCounter = 0
+            this.SecCounter++
+        }
+
+        if (this.SecCounter == 5){
+            this.EnemyCounter++
+            this.SecCounter = 0
+            var Side = Math.random() - 0.5
+            var SpawnX = 200
+            var SpawnRScreen = canvas.width + SpawnX
+            var SpawnLScreen = -SpawnX
+            var RightEndMap = this.GameWorld.GlobalXOrigin + canvas.width*2
+            var LeftEndMap = this.GameWorld.GlobalXOrigin - canvas.width*1.5 + this.Unit*7
+            if (Side < 0)  {
+                if (SpawnLScreen < LeftEndMap) {Side *= -1}
+            } else {
+                if (SpawnRScreen > RightEndMap) {Side *= -1}
+            }
+            if (Side < 0){
+                this.SpawnPawn(new EnemyPawn(SpawnLScreen, canvas.height/3, 5, 'green', 10, this.GameWorld, 60 + Math.random()*30,this.EnemyCounter))
+            }else{
+                this.SpawnPawn(new EnemyPawn(SpawnRScreen, canvas.height/3, 5, 'green', 10, this.GameWorld, 60 + Math.random()*30,this.EnemyCounter))
+            }
+        }
+        this.PointsText.OnUpdate(this.GameWorld.GetPlayerChar().points)
     }
 
     PlayerInput(InputEvent){

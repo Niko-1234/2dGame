@@ -4,6 +4,7 @@ class World {
         this.ColisionsBoxes = []
         this.Pawns = []
         this.PlayerChar
+        this.GlobalXOrigin = 0
     }
 
     OnUpdate() {
@@ -12,6 +13,7 @@ class World {
             actor.OnUpdate()
             actor.x -= WorldMove //keep pleyr in the middle of the screen
         })
+        this.GlobalXOrigin -= WorldMove
     }
 
     OverlapActors(StartPoint, Range, PawnToOmit){
@@ -28,14 +30,20 @@ class World {
     }
 
     DeleteActor(ActorToDelete){
-        var i = 0
-        this.actors.forEach(actor => {
-            if (actor == ActorToDelete){
-                delete this.actors[i]
-                return
+        for (var i = 0; i < this.Pawns.length; i++){
+            if (this.Pawns[i] == ActorToDelete){
+                delete this.Pawns[i]
+                this.Pawns.splice(i,1)
             }
-            i++
-        })
+        }
+        for (var i = 0; i < this.actors.length; i++){
+            if (this.actors[i] == ActorToDelete){
+                delete this.actors[i]
+                this.actors.splice(i,1)
+            }
+        }
+
+        console.log(this.actors.length,this.Pawns.length)
     }
 
     AddActor(actor) {

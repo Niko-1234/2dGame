@@ -54,7 +54,7 @@ class Engine{
     }
 
     Initialize() {
-        this.GameLogic.Initialize(this.GameWorld)
+        this.GameLogic.Initialize(this.GameWorld, this.GameFPS)
     }
 
     //Start Game
@@ -84,6 +84,7 @@ class Engine{
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             this.CheckCollisions(this.GameWorld.GetPawns(), this.GameWorld.GetCollisionBoxes())
             this.GameWorld.OnUpdate()
+            this.GameLogic.OnUpdate()
         }
     }
 }
