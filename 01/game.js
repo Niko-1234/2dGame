@@ -1,3 +1,4 @@
+//Base Actor of the game
 class Actor {
     constructor(x, y, radius, color) {
         this.x = x
@@ -8,7 +9,7 @@ class Actor {
         this.dy = 0
     }
 
-    //Actor screen pointer TO DELETE
+    //Actor screen pointer for DEBUG
     draw() {
         // ctx.beginPath()
         // ctx.arc(this.x, this.y, this.radius, 0, Math.PI *2, false)
@@ -21,6 +22,7 @@ class Actor {
     }
 }
 
+//Collision Area witch Pawns cant go thru
 class CollisionBox extends Actor {
     constructor(x, y, width, height, color, src) {
         super(x, y, 0, color)
@@ -33,8 +35,10 @@ class CollisionBox extends Actor {
         this.BoxTexture.src = src
     }
 
+    //Draw colision area for debug
     draw() {
-        
+        ctx.fillStyle = this.color
+        ctx.fillRect(this.x, this.y, this.width,this.height)
     }
 
     drawSprite(img, sX, sY, sW, sH, dX, dY, dW, dH){
@@ -44,9 +48,11 @@ class CollisionBox extends Actor {
     OnUpdate(){
         super.OnUpdate()
         this.drawSprite(this.BoxTexture, 0 ,0, this.width, this.height, this.x, this.y, this.width, this.height)
+        // this.draw() //used For debug
     }
 }
 
+//Widged joinet to pawn
 class HealthBar {
     constructor (x, y, color) {
         this.x
@@ -342,6 +348,7 @@ class Pawn extends Actor {
         if (this.bRightMove) this.CurrImg = this.DeathAnim.Right
         else                 this.CurrImg = this.DeathAnim.Left
         if (this.GetFrame() == 1 && this instanceof EnemyPawn){
+            this.GameWorld.PlayerPoints += 10
             this.GameWorld.DeleteActor(this)
         } else if (this.GetFrame() == 1 && this instanceof PlayerPawn) {
             window.location.reload();
@@ -517,7 +524,6 @@ class PlayerPawn extends Pawn{
     constructor(x ,y ,radius, color, speed, World){
         super(x ,y ,radius, color, speed, World)
         this.AttackRange = 100
-        this.points = 0
 
         this.HPBarColor = "rgb(100, 195, 50)"
         this.PawnHealth = new HealthBar(50, 110, this.HPBarColor)
@@ -556,14 +562,6 @@ class EnemyPawn extends Pawn{
         this.MoveWay = 0  
         this.AnimSlow = 3
         this.DamageCause = 20
-    }
-
-    SetDieAnimation(){
-        if (this.GetFrame() == 1){
-            this.PlayerChar.points += 10
-            console.log(this.PlayerChar.points)
-        }
-        super.SetDieAnimation()
     }
 
     MoveTo(X, Range) {
@@ -647,9 +645,8 @@ class Game {
     constructor (){
         this.GameWorld
         this.GameFPS = 0
-        this.Unit = 128
+        this.Unit = 0
         this.EnemyCounter = 0
-        this.PointsText = new Widget()
     }
 
     SpawnActor(actor) {
@@ -669,10 +666,12 @@ class Game {
         this.GameFPS = fps
         this.FPSCounter = 0
         this.SecCounter = 0
+        this.PointsText = new Widget()
+        this.Unit = 128
     }
     
     BeginPlay() {
-        //STATIC MESHES
+        //SPAWN WORLD STATIC MESHES
         //floor1,2,3
         const FloorHeight = this.Unit
         const TowerHeight = this.Unit*4
@@ -702,14 +701,12 @@ class Game {
         const BoxHeight = this.Unit
         this.SpawnColisionArea(new CollisionBox(canvas.width + this.Unit*1,(canvas.height - this.Unit*2),BoxWidth,BoxHeight,'blue',Boxtexture))
 
-        //PAWNS
+        //SPAWN PLAYER 
         this.GameWorld.SetPlayerChar(new PlayerPawn(canvas.width/2, canvas.height - this.Unit, 5, 'red', 10, this.GameWorld))
         this.SpawnPawn(this.GameWorld.GetPlayerChar())
-
-        //WIDGETS
-
     }
 
+    //Game Tick event
     OnUpdate(){
         this.FPSCounter++
         if(this.FPSCounter == this.GameFPS){
@@ -718,28 +715,34 @@ class Game {
         }
 
         if (this.SecCounter == 5){
-            this.EnemyCounter++
-            this.SecCounter = 0
-            var Side = Math.random() - 0.5
-            var SpawnX = 200
-            var SpawnRScreen = canvas.width + SpawnX
-            var SpawnLScreen = -SpawnX
-            var RightEndMap = this.GameWorld.GlobalXOrigin + canvas.width*2
-            var LeftEndMap = this.GameWorld.GlobalXOrigin - canvas.width*1.5 + this.Unit*7
-            if (Side < 0)  {
-                if (SpawnLScreen < LeftEndMap) {Side *= -1}
-            } else {
-                if (SpawnRScreen > RightEndMap) {Side *= -1}
-            }
-            if (Side < 0){
-                this.SpawnPawn(new EnemyPawn(SpawnLScreen, canvas.height/3, 5, 'green', 10, this.GameWorld, 60 + Math.random()*30,this.EnemyCounter))
-            }else{
-                this.SpawnPawn(new EnemyPawn(SpawnRScreen, canvas.height/3, 5, 'green', 10, this.GameWorld, 60 + Math.random()*30,this.EnemyCounter))
-            }
+            this.SpawnEnemyRandom()
         }
-        this.PointsText.OnUpdate(this.GameWorld.GetPlayerChar().points)
+        this.PointsText.OnUpdate(this.GameWorld.PlayerPoints)
     }
 
+    //Spawn Enemy in random side off the screen
+    SpawnEnemyRandom(){
+        this.EnemyCounter++
+        this.SecCounter = 0
+        var Side = Math.random() - 0.5
+        var SpawnX = 300
+        var SpawnRScreen = canvas.width + SpawnX
+        var SpawnLScreen = -SpawnX
+        var RightEndMap = this.GameWorld.GlobalXOrigin + canvas.width*2
+        var LeftEndMap = this.GameWorld.GlobalXOrigin - canvas.width*1.5 + this.Unit*7
+        if (Side < 0)  {
+            if (SpawnLScreen < LeftEndMap) {Side *= -1}
+        } else {
+            if (SpawnRScreen > RightEndMap) {Side *= -1}
+        }
+        if (Side < 0){
+            this.SpawnPawn(new EnemyPawn(SpawnLScreen, canvas.height/3, 5, 'green', 10, this.GameWorld, 60 + Math.random()*30,this.EnemyCounter))
+        }else{
+            this.SpawnPawn(new EnemyPawn(SpawnRScreen, canvas.height/3, 5, 'green', 10, this.GameWorld, 60 + Math.random()*30,this.EnemyCounter))
+        }
+    }
+
+    //Move input from Engine to PlayerChar
     PlayerInput(InputEvent){
         this.GameWorld.GetPlayerChar().Input(InputEvent)
     }

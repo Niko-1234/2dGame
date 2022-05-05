@@ -5,6 +5,7 @@ class World {
         this.Pawns = []
         this.PlayerChar
         this.GlobalXOrigin = 0
+        this.PlayerPoints = 0
     }
 
     OnUpdate() {

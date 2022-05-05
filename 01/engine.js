@@ -53,6 +53,7 @@ class Engine{
         })
     }
 
+    //Initialize Game logic
     Initialize() {
         this.GameLogic.Initialize(this.GameWorld, this.GameFPS)
     }
